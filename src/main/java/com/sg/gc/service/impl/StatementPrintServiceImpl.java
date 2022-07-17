@@ -5,6 +5,7 @@ import java.io.FileOutputStream;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,8 +33,6 @@ public class StatementPrintServiceImpl implements StatementPrintService {
 	@Autowired
 	CompteRepository compteDao;
 	
-	 volatile BigDecimal totalCredit = new BigDecimal("0");
-	 volatile BigDecimal totalDebit = new BigDecimal("0");
 	
 	private static Font catFont = new Font(Font.FontFamily.TIMES_ROMAN, 18,
             Font.BOLD);
@@ -42,13 +41,13 @@ public class StatementPrintServiceImpl implements StatementPrintService {
 	 
 	
 	@Override
-	public void exportStatementPdf(Long clientId) {
+	public synchronized void exportStatementPdf(Long clientId) {
 		
 		try {
 			Compte compte = compteDao.getBalanceByClientandType(clientId, EnumTypeCompte.COURANT.getId());
 			Document document = new Document();
 				try {
-					PdfWriter.getInstance(document, new FileOutputStream("statement-"+compte.getClient().getNom() +" - "+ new SimpleDateFormat("yyyy-MM-dd").format(new Date()).toString()+".pdf"));
+					PdfWriter.getInstance(document, new FileOutputStream(".\\statement\\statement-"+compte.getClient().getNom() +" - "+ new SimpleDateFormat("yyyy-MM-dd").format(new Date()).toString()+".pdf"));
 				} catch (FileNotFoundException e) {
 					e.printStackTrace();
 				}
@@ -109,16 +108,12 @@ public class StatementPrintServiceImpl implements StatementPrintService {
 	    cell.setPhrase(new Phrase(" TOTAUX DES MOUVEMENTS "));
 	    table.addCell(cell);
 	   
-	    compte.getOperations().stream().map(op -> op.getMontant()).forEach(m -> {
-	    	if(m.compareTo(new BigDecimal("0")) > 0) {
-	    		totalCredit= totalCredit.add(m);
-	    	} else {
-	    		totalDebit =  totalDebit.add(m);
-	    	}
-	    });
-	    cell.setPhrase(new Phrase(totalDebit.abs().toString()));
+	    Optional<BigDecimal> totalCredit = compte.getOperations().stream().map(op -> op.getMontant()).filter(m -> m.compareTo(new BigDecimal("0")) > 0).reduce(BigDecimal:: add);
+	    Optional<BigDecimal> totalDebit = compte.getOperations().stream().map(op -> op.getMontant()).filter(m -> m.compareTo(new BigDecimal("0")) < 0).reduce(BigDecimal:: add);
+
+	    cell.setPhrase(new Phrase(totalDebit.get().abs().toString()));
 	    table.addCell(cell);
-	    cell.setPhrase(new Phrase(totalCredit.toString()));
+	    cell.setPhrase(new Phrase(totalCredit.get().toString()));
 	    table.addCell(cell);
 	}
 	

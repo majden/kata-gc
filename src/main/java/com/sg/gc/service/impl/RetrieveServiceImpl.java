@@ -28,7 +28,7 @@ public class RetrieveServiceImpl implements RetrieveService{
 	
 	@Override
 	@Transactional
-	public boolean retrieve(Long clientId, BigDecimal amount) {
+	public synchronized boolean retrieve(Long clientId, BigDecimal amount) {
 		
 		Compte cpte = compteDao.getCompteByClientandType(clientId, EnumTypeCompte.COURANT.getId());
 		if(cpte.getSolde().compareTo(amount) > 0) {
