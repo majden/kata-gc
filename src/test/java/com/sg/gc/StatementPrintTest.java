@@ -1,6 +1,9 @@
 package com.sg.gc;
 
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import java.math.BigDecimal;
 import java.util.Date;
 
@@ -68,7 +71,7 @@ public class StatementPrintTest {
 	
 	@Test
 	public void statementPrintTestOk() {
-		spService.exportStatementPdf(client.getId());
+		assertDoesNotThrow(() ->  spService.exportStatementPdf(client.getId()));
 	}
 	
 	private void createOperation(BigDecimal amount , EnumTypeOperation type, String natureOperation) {
